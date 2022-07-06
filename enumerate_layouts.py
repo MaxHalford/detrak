@@ -2,7 +2,7 @@ import copy
 import itertools
 import tqdm
 
-N = 5
+N = 3
 N_TILES = N ** 2
 N_TURNS = (N_TILES - 1) // 2
 
@@ -10,17 +10,6 @@ class Grid:
 
     def __init__(self, starting_symbol):
         self.layout = [starting_symbol] + [None] * (N_TILES - 1)
-
-    @property
-    def rows(self):
-        return [[self.layout[i * N + j] for j in range(N)] for i in range(N)]
-
-    @property
-    def columns(self):
-        return [
-            [self.layout[i + j * N] for j in range(N)]
-            for i in range(N)
-        ]
 
     def __getitem__(self, at):
         i, j = at
