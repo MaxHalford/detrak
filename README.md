@@ -9,3 +9,8 @@
 The question I'm looking to answer here is:
 
 > ***What is the highest possible score if the sequence of symbols is known in advance?***
+
+I haven't found a fast way to do this yet. The only way I see is to list all the possible grid layouts, and then evaluate the score of each layout:
+
+- `precompute_scores.py` generates a `.json` file mapping each possible row/column/diagonal symbol combination to a score
+- `enumerate_layouts.py` generates a `.txt` file with all the possible grid layouts
