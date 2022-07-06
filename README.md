@@ -15,7 +15,7 @@ The question I'm looking to answer here is:
 I haven't found a smart answer yet. The brute-force way I see is to list all the possible grid layouts, and then evaluate each layout:
 
 - `precompute_scores.py` generates a `.json` file mapping each possible row/column/diagonal symbol combination to a score
-- `enumerate_layouts.py` generates a `.txt` file with all the possible grid layouts
+- `enumerate_layouts.py` generates a `.txt` file with all the possible grid layouts thanks to [backtracking](https://www.wikiwand.com/en/Backtracking)
 - `evaluate_sequence.py` calculates the best possible score for a given sequence of symbols
 
 Each script has an `N` parameter which can be changed. I haven't managed to run `enumerate_layouts.py` with `N=5` because it's simply taking too long.
