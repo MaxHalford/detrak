@@ -80,7 +80,7 @@ function App() {
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>
-          Detrak Solveur
+          Détrak - Solveur
         </h1>
         <p style={styles.subtitle}>
           Trouvez le placement optimal pour un score maximum
