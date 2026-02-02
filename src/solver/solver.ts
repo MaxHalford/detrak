@@ -54,7 +54,7 @@ function areAdjacent(p1: Position, p2: Position): boolean {
  * Get all valid domino placements for a given grid and domino
  * Returns placements sorted to prioritize positions likely to create runs
  */
-function getValidPlacements(grid: Grid, domino: Domino): Placement[] {
+function getValidPlacements(grid: Grid, domino: Domino, originalIndex: number): Placement[] {
   const emptyCells = getEmptyCells(grid);
   const placements: Placement[] = [];
 
@@ -68,6 +68,7 @@ function getValidPlacements(grid: Grid, domino: Domino): Placement[] {
         // Add both orientations (not flipped and flipped)
         placements.push({
           domino,
+          originalIndex,
           pos1,
           pos2,
           flipped: false,
@@ -77,6 +78,7 @@ function getValidPlacements(grid: Grid, domino: Domino): Placement[] {
         if (domino.first !== domino.second) {
           placements.push({
             domino,
+            originalIndex,
             pos1,
             pos2,
             flipped: true,
@@ -204,6 +206,7 @@ export function createAsyncSolver(config: SolverConfig): {
           pruned,
           bestScore: bestScore === -Infinity ? 0 : bestScore,
           bestGrid: bestGrid ? cloneGrid(bestGrid) : null,
+          bestPlacements: bestPlacements.length > 0 ? [...bestPlacements] : undefined,
           currentDepth: depth,
           elapsedMs: now - startTime,
           status,
@@ -224,7 +227,7 @@ export function createAsyncSolver(config: SolverConfig): {
       const placementStack: Placement[] = []; // Track applied placements for final result
 
       // Initialize with first level
-      const initialPlacements = getValidPlacements(grid, dominoes[0]);
+      const initialPlacements = getValidPlacements(grid, dominoes[0], 0);
       if (initialPlacements.length === 0) {
         reject(new Error('No valid initial placements'));
         return;
@@ -303,7 +306,7 @@ export function createAsyncSolver(config: SolverConfig): {
           }
 
           // Get placements for next level
-          const nextPlacements = getValidPlacements(grid, dominoes[frame.depth + 1]);
+          const nextPlacements = getValidPlacements(grid, dominoes[frame.depth + 1], frame.depth + 1);
           if (nextPlacements.length === 0) {
             pruned++;
             continue;

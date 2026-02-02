@@ -177,7 +177,11 @@ function App() {
           {progress && progress.bestGrid && progress.status === 'running' && (
             <section style={styles.section}>
               <h2 style={styles.sectionTitle}>Meilleure solution trouvée</h2>
-              <GameGrid grid={progress.bestGrid} scoreBreakdown={progress.scoreBreakdown} />
+              <GameGrid
+                grid={progress.bestGrid}
+                scoreBreakdown={progress.scoreBreakdown}
+                placements={progress.bestPlacements}
+              />
             </section>
           )}
 
@@ -188,6 +192,7 @@ function App() {
               <GameGrid
                 grid={result.bestGrid}
                 scoreBreakdown={result.scoreBreakdown}
+                placements={result.bestPlacements}
                 animated
               />
               <div style={styles.stats}>
@@ -223,11 +228,16 @@ function App() {
       <footer style={styles.footer}>
         <p>
           Detrak est un jeu de dés conçu par Reiner Knizia, édité par Gigamic.
+        </p>
+        <p>
           Ce solveur utilise un algorithme de branch and bound avec élagage pour trouver les solutions optimales.
         </p>
         <p style={{ marginTop: '8px' }}>
           <a href="https://github.com/MaxHalford/detrak" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
             GitHub
+          </a><span> | </span>
+          <a href="https://maxhalford.github.io/blog/detrak-solver" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
+            Blog
           </a>
         </p>
       </footer>

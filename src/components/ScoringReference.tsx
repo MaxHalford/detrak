@@ -71,6 +71,14 @@ export const ScoringReference: React.FC = () => {
       }}>
         Aucune paire dans une ligne/colonne = <span style={{ color: 'var(--accent-primary)' }}>-5</span>
       </div>
+      <div style={{
+        marginTop: '6px',
+        fontSize: '12px',
+        color: 'var(--text-muted)',
+        textAlign: 'center',
+      }}>
+        Les points marqués dans la seconde diagonale sont doublés
+      </div>
     </div>
   );
 };

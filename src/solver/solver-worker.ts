@@ -88,6 +88,7 @@ ${workerSource}
             pruned: data.pruned || 0,
             bestScore: data.bestScore || 0,
             bestGrid: data.bestGrid || null,
+            bestPlacements: data.placements || undefined,
             scoreBreakdown: breakdown,
             currentDepth: 0,
             elapsedMs: data.elapsedMs || 0,
@@ -367,12 +368,16 @@ function solve(startingSymbol, dominoes) {
   freq[startingSymbol]++;
   for (const d of dominoes) { freq[d.first]++; freq[d.second]++; }
 
-  const ordered = [...dominoes].sort((a, b) => {
-    const aD = a.first === a.second ? 1 : 0;
-    const bD = b.first === b.second ? 1 : 0;
+  // Track original indices when sorting
+  const indexed = dominoes.map((d, i) => ({ domino: d, originalIndex: i }));
+  indexed.sort((a, b) => {
+    const aD = a.domino.first === a.domino.second ? 1 : 0;
+    const bD = b.domino.first === b.domino.second ? 1 : 0;
     if (aD !== bD) return bD - aD;
-    return (freq[b.first] + freq[b.second]) - (freq[a.first] + freq[a.second]);
+    return (freq[b.domino.first] + freq[b.domino.second]) - (freq[a.domino.first] + freq[a.domino.second]);
   });
+  const ordered = indexed.map(x => x.domino);
+  const originalIndices = indexed.map(x => x.originalIndex);
 
   let bestScore = -Infinity;
   let bestGrid = null;
@@ -424,6 +429,7 @@ function solve(startingSymbol, dominoes) {
         type: 'progress', explored, pruned,
         bestScore: bestScore === -Infinity ? 0 : bestScore,
         bestGrid: bestGrid?.toGrid() || null,
+        placements: bestPlacements.length > 0 ? bestPlacements : null,
         elapsedMs: now - startTime,
       });
     }
@@ -464,6 +470,7 @@ function solve(startingSymbol, dominoes) {
         bestScore = score; bestGrid = grid.clone();
         bestPlacements = placementStack.map((p, i) => ({
           domino: ordered[i],
+          originalIndex: originalIndices[i],
           pos1: { row: Math.floor(p.idx1 / 5), col: p.idx1 % 5 },
           pos2: { row: Math.floor(p.idx2 / 5), col: p.idx2 % 5 },
           flipped: p.sym1 !== ordered[i].first,

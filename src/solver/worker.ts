@@ -376,12 +376,16 @@ function solve(startingSymbol: Symbol, dominoes: Domino[]): void {
     freq[d.second]++;
   }
 
-  const ordered = [...dominoes].sort((a, b) => {
-    const aD = a.first === a.second ? 1 : 0;
-    const bD = b.first === b.second ? 1 : 0;
+  // Track original indices when sorting
+  const indexed = dominoes.map((d, i) => ({ domino: d, originalIndex: i }));
+  indexed.sort((a, b) => {
+    const aD = a.domino.first === a.domino.second ? 1 : 0;
+    const bD = b.domino.first === b.domino.second ? 1 : 0;
     if (aD !== bD) return bD - aD;
-    return (freq[b.first] + freq[b.second]) - (freq[a.first] + freq[a.second]);
+    return (freq[b.domino.first] + freq[b.domino.second]) - (freq[a.domino.first] + freq[a.domino.second]);
   });
+  const ordered = indexed.map(x => x.domino);
+  const originalIndices = indexed.map(x => x.originalIndex);
 
   let bestScore = -Infinity;
   let bestGrid: FastGrid | null = null;
@@ -550,6 +554,7 @@ function solve(startingSymbol: Symbol, dominoes: Domino[]): void {
         // Build placements
         bestPlacements = placementStack.map((p, i) => ({
           domino: ordered[i],
+          originalIndex: originalIndices[i],
           pos1: { row: Math.floor(p.idx1 / 5), col: p.idx1 % 5 },
           pos2: { row: Math.floor(p.idx2 / 5), col: p.idx2 % 5 },
           flipped: p.sym1 !== ordered[i].first,

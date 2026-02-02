@@ -16,6 +16,7 @@ export interface Position {
 
 export interface Placement {
   domino: Domino;
+  originalIndex: number; // index in the original input dominoes array (0-11)
   pos1: Position;
   pos2: Position;
   flipped: boolean; // whether first/second are swapped
@@ -33,6 +34,7 @@ export interface SolverProgress {
   pruned: number;
   bestScore: number;
   bestGrid: Grid | null;
+  bestPlacements?: Placement[];
   scoreBreakdown?: ScoreBreakdown;
   currentDepth: number;
   elapsedMs: number;

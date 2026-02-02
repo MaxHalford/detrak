@@ -420,17 +420,21 @@ export function createOptimizedSolver(config: SolverConfig): {
       // Include starting symbol
       symbolFreq[startingSymbol]++;
 
-      const orderedDominoes = [...dominoes].sort((a, b) => {
+      // Track original indices when sorting
+      const indexed = dominoes.map((d, i) => ({ domino: d, originalIndex: i }));
+      indexed.sort((a, b) => {
         // Doubles first
-        const aDouble = a.first === a.second ? 1 : 0;
-        const bDouble = b.first === b.second ? 1 : 0;
+        const aDouble = a.domino.first === a.domino.second ? 1 : 0;
+        const bDouble = b.domino.first === b.domino.second ? 1 : 0;
         if (aDouble !== bDouble) return bDouble - aDouble;
 
         // Then by combined symbol frequency (prefer common symbols)
-        const aFreq = symbolFreq[a.first] + symbolFreq[a.second];
-        const bFreq = symbolFreq[b.first] + symbolFreq[b.second];
+        const aFreq = symbolFreq[a.domino.first] + symbolFreq[a.domino.second];
+        const bFreq = symbolFreq[b.domino.first] + symbolFreq[b.domino.second];
         return bFreq - aFreq;
       });
+      const orderedDominoes = indexed.map(x => x.domino);
+      const originalIndices = indexed.map(x => x.originalIndex);
 
       // Initialize grid
       const grid = new FastGrid();
@@ -618,6 +622,7 @@ export function createOptimizedSolver(config: SolverConfig): {
           const pos2 = indexToPos(placement.pair.idx2);
           placementHistory.push({
             domino: orderedDominoes[frame.depth],
+            originalIndex: originalIndices[frame.depth],
             pos1,
             pos2,
             flipped: placement.sym1 !== orderedDominoes[frame.depth].first,
