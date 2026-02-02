@@ -1,2 +1,4 @@
 *.txt
 *.json
+dist/
+node_modules/
