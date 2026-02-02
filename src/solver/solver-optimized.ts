@@ -21,8 +21,8 @@ import type {
   ScoreBreakdown,
 } from './types';
 
-// Pre-computed scoring table
-const SCORE_TABLE: number[] = [-5, -5, 2, 3, 8, 10]; // index = run length
+// Pre-computed scoring table - scores are summed for all runs in a line
+const SCORE_TABLE: number[] = [0, 0, 2, 3, 8, 10]; // index = run length
 
 // Zobrist hashing tables (pre-computed random values)
 const ZOBRIST: bigint[][] = [];
@@ -149,14 +149,20 @@ class FastGrid {
   }
 
   calculateLineScore(indices: number[]): number {
-    let maxRun = 0;
+    let totalScore = 0;
     let currentRun = 0;
     let lastSymbol: Cell = null;
     let filledCount = 0;
+    let hasAnyRun = false;
 
     for (const idx of indices) {
       const cell = this.cells[idx];
       if (cell === null) {
+        // End of run due to empty cell
+        if (currentRun >= 2) {
+          totalScore += SCORE_TABLE[currentRun];
+          hasAnyRun = true;
+        }
         currentRun = 0;
         lastSymbol = null;
       } else {
@@ -164,19 +170,28 @@ class FastGrid {
         if (cell === lastSymbol) {
           currentRun++;
         } else {
+          // Different symbol, score previous run
+          if (currentRun >= 2) {
+            totalScore += SCORE_TABLE[currentRun];
+            hasAnyRun = true;
+          }
           currentRun = 1;
         }
-        if (currentRun > maxRun) maxRun = currentRun;
         lastSymbol = cell;
       }
     }
+    // Score final run
+    if (currentRun >= 2) {
+      totalScore += SCORE_TABLE[currentRun];
+      hasAnyRun = true;
+    }
 
-    // Only apply penalty if line is complete
-    if (filledCount === 5 && maxRun === 1) {
+    // Only apply penalty if line is complete with no runs
+    if (filledCount === 5 && !hasAnyRun) {
       return -5;
     }
 
-    return SCORE_TABLE[maxRun] || 0;
+    return totalScore;
   }
 
   getTotalScore(): number {
@@ -206,22 +221,15 @@ class FastGrid {
 }
 
 /**
- * Calculate tight upper bound on remaining score potential
+ * Calculate upper bound on remaining score potential
+ * With summed scoring, we use 10 (max possible) for any incomplete line
  */
-function calculateUpperBound(grid: FastGrid, remainingDominoes: Domino[]): number {
+function calculateUpperBound(grid: FastGrid, _remainingDominoes: Domino[]): number {
   let bound = 0;
   let diagAntiBound = 0;
 
-  // Count available symbols in remaining dominoes
-  const symbolCounts: number[] = [0, 0, 0, 0, 0, 0, 0]; // index 1-6
-  for (const d of remainingDominoes) {
-    symbolCounts[d.first]++;
-    symbolCounts[d.second]++;
-  }
-
   // For each line, calculate maximum possible score
   for (let lineIdx = 0; lineIdx < 11; lineIdx++) {
-    const indices = ALL_LINES[lineIdx];
     const filledCount = grid.lineFilled[lineIdx];
     const emptyCount = 5 - filledCount;
 
@@ -231,49 +239,8 @@ function calculateUpperBound(grid: FastGrid, remainingDominoes: Domino[]): numbe
       // Line is complete, use actual score
       lineContribution = grid.lineScores[lineIdx];
     } else {
-      // Find current runs and their symbols
-      let maxPossibleRun = 0;
-
-      // Check what symbols are in this line
-      const lineSymbols: Map<Symbol, number> = new Map();
-      for (const idx of indices) {
-        const cell = grid.cells[idx];
-        if (cell !== null) {
-          lineSymbols.set(cell, (lineSymbols.get(cell) || 0) + 1);
-        }
-      }
-
-      // Best case: we can extend the longest existing run
-      for (const [symbol, count] of lineSymbols) {
-        // How many more of this symbol could we potentially place?
-        const availableOfSymbol = symbolCounts[symbol];
-        const potentialRun = Math.min(5, count + Math.min(emptyCount, availableOfSymbol));
-        if (potentialRun > maxPossibleRun) {
-          maxPossibleRun = potentialRun;
-        }
-      }
-
-      // Or we could create a new run with empty cells
-      if (emptyCount >= 2) {
-        // Find most common symbol in remaining dominoes
-        let maxSymbolCount = 0;
-        for (let s = 1; s <= 6; s++) {
-          if (symbolCounts[s] > maxSymbolCount) {
-            maxSymbolCount = symbolCounts[s];
-          }
-        }
-        const newRunPotential = Math.min(emptyCount, maxSymbolCount);
-        if (newRunPotential > maxPossibleRun) {
-          maxPossibleRun = newRunPotential;
-        }
-      }
-
-      // Empty line - theoretical max
-      if (filledCount === 0) {
-        maxPossibleRun = Math.min(5, emptyCount);
-      }
-
-      lineContribution = SCORE_TABLE[maxPossibleRun] || SCORE_TABLE[5];
+      // With summed scoring, theoretical max is 10 (5-in-a-row)
+      lineContribution = 10;
     }
 
     bound += lineContribution;
@@ -803,17 +770,26 @@ function calculateScoreBreakdown(grid: Grid): ScoreBreakdown {
 }
 
 function scoreCompleteLine(line: Cell[]): number {
-  let maxRun = 1;
+  let totalScore = 0;
   let currentRun = 1;
+  let hasAnyRun = false;
 
   for (let i = 1; i < line.length; i++) {
     if (line[i] === line[i - 1]) {
       currentRun++;
-      if (currentRun > maxRun) maxRun = currentRun;
     } else {
+      if (currentRun >= 2) {
+        totalScore += SCORE_TABLE[currentRun];
+        hasAnyRun = true;
+      }
       currentRun = 1;
     }
   }
+  // Score final run
+  if (currentRun >= 2) {
+    totalScore += SCORE_TABLE[currentRun];
+    hasAnyRun = true;
+  }
 
-  return SCORE_TABLE[maxRun];
+  return hasAnyRun ? totalScore : -5;
 }

@@ -25,7 +25,8 @@ export interface WorkerOutput {
 }
 
 // Use typed arrays for maximum performance
-const SCORE_TABLE = new Int8Array([-5, -5, 2, 3, 8, 10]); // index = run length
+// Index = run length, scores are summed for all runs in a line
+const SCORE_TABLE = new Int8Array([0, 0, 2, 3, 8, 10]); // index = run length
 
 // Pre-computed adjacent pairs
 const ADJACENT_PAIRS: Array<[number, number]> = [];
@@ -130,14 +131,20 @@ class FastGrid {
 
   scoreLine(lineIdx: number): number {
     const line = LINES[lineIdx];
-    let maxRun = 0;
+    let totalScore = 0;
     let run = 0;
     let last = 0;
     let filled = 0;
+    let hasAnyRun = false;
 
     for (let i = 0; i < 5; i++) {
       const c = this.cells[line[i]];
       if (c === 0) {
+        // End of run due to empty cell
+        if (run >= 2) {
+          totalScore += SCORE_TABLE[run];
+          hasAnyRun = true;
+        }
         run = 0;
         last = 0;
       } else {
@@ -145,15 +152,24 @@ class FastGrid {
         if (c === last) {
           run++;
         } else {
+          // Different symbol, score previous run
+          if (run >= 2) {
+            totalScore += SCORE_TABLE[run];
+            hasAnyRun = true;
+          }
           run = 1;
           last = c;
         }
-        if (run > maxRun) maxRun = run;
       }
     }
+    // Score final run
+    if (run >= 2) {
+      totalScore += SCORE_TABLE[run];
+      hasAnyRun = true;
+    }
 
-    if (filled === 5 && maxRun === 1) return -5;
-    return SCORE_TABLE[maxRun];
+    if (filled === 5 && !hasAnyRun) return -5;
+    return totalScore;
   }
 
   totalScore(): number {
@@ -620,16 +636,26 @@ function solve(startingSymbol: Symbol, dominoes: Domino[]): void {
 
 function calcBreakdown(grid: Grid): ScoreBreakdown {
   const scoreLine = (cells: (Symbol | null)[]): number => {
-    let maxRun = 1, run = 1;
+    let totalScore = 0;
+    let run = 1;
+    let hasAnyRun = false;
     for (let i = 1; i < 5; i++) {
       if (cells[i] === cells[i - 1]) {
         run++;
-        if (run > maxRun) maxRun = run;
       } else {
+        if (run >= 2) {
+          totalScore += SCORE_TABLE[run];
+          hasAnyRun = true;
+        }
         run = 1;
       }
     }
-    return SCORE_TABLE[maxRun];
+    // Score final run
+    if (run >= 2) {
+      totalScore += SCORE_TABLE[run];
+      hasAnyRun = true;
+    }
+    return hasAnyRun ? totalScore : -5;
   };
 
   const rows = grid.map(r => scoreLine(r));

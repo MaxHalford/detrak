@@ -80,7 +80,7 @@ function App() {
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>
-          Detrak Solver
+          Detrak Solveur
         </h1>
         <p style={styles.subtitle}>
           Trouvez le placement optimal pour un score maximum
@@ -224,6 +224,11 @@ function App() {
         <p>
           Detrak est un jeu de dés conçu par Reiner Knizia, édité par Gigamic.
           Ce solveur utilise un algorithme de branch and bound avec élagage pour trouver les solutions optimales.
+        </p>
+        <p style={{ marginTop: '8px' }}>
+          <a href="https://github.com/MaxHalford/detrak" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
+            GitHub
+          </a>
         </p>
       </footer>
     </div>
@@ -458,6 +463,10 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-muted)',
     fontSize: '13px',
     borderTop: '1px solid rgba(255,255,255,0.08)',
+  },
+  footerLink: {
+    color: 'var(--text-muted)',
+    textDecoration: 'none',
   },
 };
 

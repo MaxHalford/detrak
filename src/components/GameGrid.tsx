@@ -22,11 +22,12 @@ export const GameGrid: React.FC<GameGridProps> = ({
   highlightCells,
   animated = false,
 }) => {
+  const formatScore = (score: number) => score > 0 ? `+${score}` : `${score}`;
+
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '0',
     padding: '20px',
     background: 'linear-gradient(145deg, rgba(22, 33, 62, 0.9), rgba(15, 52, 96, 0.9))',
     borderRadius: '20px',
@@ -34,54 +35,17 @@ export const GameGrid: React.FC<GameGridProps> = ({
     border: '1px solid rgba(255,255,255,0.1)',
   };
 
-  const gridContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  };
-
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    gap: '4px',
-    alignItems: 'center',
+  const tableStyle: React.CSSProperties = {
+    borderSpacing: '4px',
+    borderCollapse: 'separate',
   };
 
   const cellStyle = (row: number, col: number): React.CSSProperties => ({
+    padding: 0,
     animation: animated ? `fadeIn 0.3s ease ${(row * 5 + col) * 0.05}s both` : undefined,
   });
 
-  const scoreStyle = (score: number): React.CSSProperties => ({
-    width: '40px',
-    textAlign: 'center',
-    fontFamily: 'var(--font-mono)',
-    fontWeight: 600,
-    fontSize: '14px',
-    color: SCORE_COLOR(score),
-    padding: '4px 0',
-    background: 'rgba(0,0,0,0.2)',
-    borderRadius: '6px',
-  });
-
-  const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    gap: '4px',
-    marginBottom: '8px',
-    alignItems: 'center',
-  };
-
-  const colScoreStyle = (score: number): React.CSSProperties => ({
-    width: '48px',
-    textAlign: 'center',
-    fontFamily: 'var(--font-mono)',
-    fontWeight: 600,
-    fontSize: '14px',
-    color: SCORE_COLOR(score),
-    background: 'rgba(0,0,0,0.2)',
-    borderRadius: '6px',
-    padding: '4px 0',
-  });
-
-  const diagAntiStyle = (score: number): React.CSSProperties => ({
+  const scoreBoxStyle = (score: number): React.CSSProperties => ({
     textAlign: 'center',
     fontFamily: 'var(--font-mono)',
     fontWeight: 600,
@@ -90,6 +54,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
     background: 'rgba(0,0,0,0.2)',
     borderRadius: '6px',
     padding: '4px 8px',
+    whiteSpace: 'nowrap',
   });
 
   const totalStyle: React.CSSProperties = {
@@ -107,41 +72,47 @@ export const GameGrid: React.FC<GameGridProps> = ({
 
   return (
     <div style={containerStyle}>
-      {/* Column scores header + anti-diagonal */}
-      {scoreBreakdown && (
-        <div style={headerStyle}>
-          {scoreBreakdown.cols.map((score, i) => (
-            <div key={i} style={colScoreStyle(score)}>
-              {score > 0 ? `+${score}` : score}
-            </div>
-          ))}
-          <div style={{ marginLeft: '8px', ...diagAntiStyle(scoreBreakdown.diagAnti) }}>
-            {scoreBreakdown.diagAnti > 0 ? `×2 +${scoreBreakdown.diagAnti}` : `×2 ${scoreBreakdown.diagAnti}`}
-          </div>
-        </div>
-      )}
+      <table style={tableStyle}>
+        <tbody>
+          {/* Column scores header row */}
+          {scoreBreakdown && (
+            <tr>
+              {scoreBreakdown.cols.map((score, i) => (
+                <td key={i} style={{ padding: 0 }}>
+                  <div style={scoreBoxStyle(score)}>{formatScore(score)}</div>
+                </td>
+              ))}
+              <td style={{ padding: 0 }}>
+                <div style={scoreBoxStyle(scoreBreakdown.diagAnti)}>
+                  ×2 {formatScore(scoreBreakdown.diagAnti)}
+                </div>
+              </td>
+            </tr>
+          )}
 
-      {/* Grid with row scores */}
-      <div style={gridContainerStyle}>
-        {grid.map((row, rowIdx) => (
-          <div key={rowIdx} style={rowStyle}>
-            {row.map((cell, colIdx) => (
-              <div key={colIdx} style={cellStyle(rowIdx, colIdx)}>
-                <DetrakSymbol
-                  value={cell}
-                  size="md"
-                  highlight={highlightCells?.has(`${rowIdx},${colIdx}`)}
-                />
-              </div>
-            ))}
-            {scoreBreakdown && (
-              <div style={{ marginLeft: '8px', ...scoreStyle(scoreBreakdown.rows[rowIdx]) }}>
-                {scoreBreakdown.rows[rowIdx] > 0 ? `+${scoreBreakdown.rows[rowIdx]}` : scoreBreakdown.rows[rowIdx]}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          {/* Grid rows */}
+          {grid.map((row, rowIdx) => (
+            <tr key={rowIdx}>
+              {row.map((cell, colIdx) => (
+                <td key={colIdx} style={cellStyle(rowIdx, colIdx)}>
+                  <DetrakSymbol
+                    value={cell}
+                    size="md"
+                    highlight={highlightCells?.has(`${rowIdx},${colIdx}`)}
+                  />
+                </td>
+              ))}
+              <td style={{ padding: 0 }}>
+                {scoreBreakdown && (
+                  <div style={scoreBoxStyle(scoreBreakdown.rows[rowIdx])}>
+                    {formatScore(scoreBreakdown.rows[rowIdx])}
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       {/* Total score */}
       {scoreBreakdown && (

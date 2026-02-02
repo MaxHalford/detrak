@@ -12,20 +12,30 @@ import type {
 import type { WorkerInput, WorkerOutput } from './worker';
 
 // Calculate score breakdown (for progress updates)
-const SCORE_TABLE: number[] = [-5, -5, 2, 3, 8, 10];
+// Scores are summed for all runs in a line
+const SCORE_TABLE: number[] = [0, 0, 2, 3, 8, 10];
 
 function calcBreakdown(grid: Grid): ScoreBreakdown {
   const scoreLine = (cells: (Symbol | null)[]): number => {
-    let maxRun = 1, run = 1;
+    let totalScore = 0;
+    let run = 1;
+    let hasAnyRun = false;
     for (let i = 1; i < 5; i++) {
       if (cells[i] === cells[i - 1]) {
         run++;
-        if (run > maxRun) maxRun = run;
       } else {
+        if (run >= 2) {
+          totalScore += SCORE_TABLE[run];
+          hasAnyRun = true;
+        }
         run = 1;
       }
     }
-    return SCORE_TABLE[maxRun];
+    if (run >= 2) {
+      totalScore += SCORE_TABLE[run];
+      hasAnyRun = true;
+    }
+    return hasAnyRun ? totalScore : -5;
   };
 
   const rows = grid.map(r => scoreLine(r));
@@ -130,7 +140,7 @@ ${workerSource}
 
 // Inline worker source (will be bundled)
 const workerSource = `
-const SCORE_TABLE = new Int8Array([-5, -5, 2, 3, 8, 10]);
+const SCORE_TABLE = new Int8Array([0, 0, 2, 3, 8, 10]);
 
 const ADJACENT_PAIRS = [];
 for (let row = 0; row < 5; row++) {
@@ -213,18 +223,24 @@ class FastGrid {
 
   scoreLine(lineIdx) {
     const line = LINES[lineIdx];
-    let maxRun = 0, run = 0, last = 0, filled = 0;
+    let totalScore = 0, run = 0, last = 0, filled = 0, hasAnyRun = false;
     for (let i = 0; i < 5; i++) {
       const c = this.cells[line[i]];
-      if (c === 0) { run = 0; last = 0; }
-      else {
+      if (c === 0) {
+        if (run >= 2) { totalScore += SCORE_TABLE[run]; hasAnyRun = true; }
+        run = 0; last = 0;
+      } else {
         filled++;
-        if (c === last) run++; else { run = 1; last = c; }
-        if (run > maxRun) maxRun = run;
+        if (c === last) { run++; }
+        else {
+          if (run >= 2) { totalScore += SCORE_TABLE[run]; hasAnyRun = true; }
+          run = 1; last = c;
+        }
       }
     }
-    if (filled === 5 && maxRun === 1) return -5;
-    return SCORE_TABLE[maxRun];
+    if (run >= 2) { totalScore += SCORE_TABLE[run]; hasAnyRun = true; }
+    if (filled === 5 && !hasAnyRun) return -5;
+    return totalScore;
   }
 
   totalScore() {
@@ -479,11 +495,13 @@ function solve(startingSymbol, dominoes) {
 
   const finalGrid = bestGrid.toGrid();
   const scoreLine = (cells) => {
-    let maxRun = 1, run = 1;
+    let totalScore = 0, run = 1, hasAnyRun = false;
     for (let i = 1; i < 5; i++) {
-      if (cells[i] === cells[i - 1]) { run++; if (run > maxRun) maxRun = run; } else run = 1;
+      if (cells[i] === cells[i - 1]) { run++; }
+      else { if (run >= 2) { totalScore += SCORE_TABLE[run]; hasAnyRun = true; } run = 1; }
     }
-    return SCORE_TABLE[maxRun];
+    if (run >= 2) { totalScore += SCORE_TABLE[run]; hasAnyRun = true; }
+    return hasAnyRun ? totalScore : -5;
   };
   const rows = finalGrid.map(r => scoreLine(r));
   const cols = [];

@@ -1,14 +1,15 @@
 import type { Grid, Cell, ScoreBreakdown } from './types';
 
-// Scoring table for adjacent identical symbols
+// Scoring table for runs of adjacent identical symbols
+// Each run scores based on its length, and all runs in a line are summed
 // 2 adjacent: 2 points
 // 3 adjacent: 3 points
 // 4 adjacent: 8 points (4 + 4 bonus)
 // 5 adjacent: 10 points (5 + 5 bonus)
-// No pairs: -5 penalty
+// No pairs (all different): -5 penalty
 const SCORE_TABLE: Record<number, number> = {
-  0: -5,  // Penalty for no adjacent pairs
-  1: -5,  // Single symbol counts as no pairs
+  0: 0,   // No run
+  1: 0,   // Single symbol (not a run)
   2: 2,
   3: 3,
   4: 8,
@@ -17,26 +18,37 @@ const SCORE_TABLE: Record<number, number> = {
 
 /**
  * Calculate score for a single line (row, column, or diagonal)
- * Finds the longest run of adjacent identical symbols
+ * Sums scores for all runs of adjacent identical symbols
  */
 export function scoreLineComplete(line: Cell[]): number {
   if (line.some(cell => cell === null)) {
     throw new Error('Cannot score incomplete line');
   }
 
-  let maxRun = 1;
+  let totalScore = 0;
   let currentRun = 1;
+  let hasAnyRun = false;
 
   for (let i = 1; i < line.length; i++) {
     if (line[i] === line[i - 1]) {
       currentRun++;
-      maxRun = Math.max(maxRun, currentRun);
     } else {
+      // End of a run, score it if it's >= 2
+      if (currentRun >= 2) {
+        totalScore += SCORE_TABLE[currentRun];
+        hasAnyRun = true;
+      }
       currentRun = 1;
     }
   }
+  // Score the final run
+  if (currentRun >= 2) {
+    totalScore += SCORE_TABLE[currentRun];
+    hasAnyRun = true;
+  }
 
-  return SCORE_TABLE[maxRun] ?? -5;
+  // Penalty if no runs at all
+  return hasAnyRun ? totalScore : -5;
 }
 
 /**
@@ -47,31 +59,46 @@ export function scoreLinePartial(line: Cell[]): number {
   const filled = line.filter(c => c !== null);
   if (filled.length === 0) return 0;
 
-  let maxRun = 1;
+  let totalScore = 0;
   let currentRun = 1;
   let lastSymbol: Cell = null;
+  let hasAnyRun = false;
 
   for (const cell of line) {
     if (cell === null) {
+      // End of a run due to empty cell, score it if >= 2
+      if (currentRun >= 2) {
+        totalScore += SCORE_TABLE[currentRun];
+        hasAnyRun = true;
+      }
       currentRun = 1;
       lastSymbol = null;
       continue;
     }
     if (cell === lastSymbol) {
       currentRun++;
-      maxRun = Math.max(maxRun, currentRun);
     } else {
+      // Different symbol, score previous run if >= 2
+      if (currentRun >= 2) {
+        totalScore += SCORE_TABLE[currentRun];
+        hasAnyRun = true;
+      }
       currentRun = 1;
     }
     lastSymbol = cell;
   }
+  // Score the final run
+  if (currentRun >= 2) {
+    totalScore += SCORE_TABLE[currentRun];
+    hasAnyRun = true;
+  }
 
   // Only return penalty if line is complete with no runs
-  if (filled.length === line.length && maxRun === 1) {
+  if (filled.length === line.length && !hasAnyRun) {
     return -5;
   }
 
-  return SCORE_TABLE[maxRun] ?? 0;
+  return totalScore;
 }
 
 /**
@@ -86,35 +113,9 @@ export function maxPossibleLineScore(line: Cell[]): number {
     return scoreLineComplete(line);
   }
 
-  // If line is all empty, max possible is 10 (5 adjacent)
-  if (filled.length === 0) {
-    return 10;
-  }
-
-  // Calculate current best run
-  let maxRun = 1;
-  let currentRun = 1;
-  let lastSymbol: Cell = null;
-
-  for (const cell of line) {
-    if (cell === null) {
-      currentRun = 1;
-      lastSymbol = null;
-      continue;
-    }
-    if (cell === lastSymbol) {
-      currentRun++;
-      maxRun = Math.max(maxRun, currentRun);
-    } else {
-      currentRun = 1;
-    }
-    lastSymbol = cell;
-  }
-
-  // Optimistic: assume we can fill empties to maximize run
-  // The theoretical max is all 5 cells being the same
-  const potentialMax = Math.min(5, maxRun + empty);
-  return SCORE_TABLE[potentialMax] ?? 10;
+  // If line has any empties, optimistically assume we can get max score (10)
+  // This is a valid upper bound since 5-in-a-row scores 10
+  return 10;
 }
 
 /**
